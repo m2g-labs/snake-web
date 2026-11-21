@@ -76,6 +76,7 @@ function setMode(m) {
 }
 
 function restart() {
+  if (document.activeElement === diffSlider) diffSlider.blur(); // so game keys steer
   level = Number(diffSlider.value);
   size = boardSize(level);
   baseMs = baseTickMs(level);
@@ -117,8 +118,10 @@ diffSlider.addEventListener('input', updateDiffLabel);
 diffSlider.addEventListener('change', () => {
   saveDifficulty(Number(diffSlider.value));
   updateDiffLabel();
-  diffSlider.blur(); // so game keys work again
 });
+// Pointer-driven changes: release focus so game keys work again.
+// Keyboard steps keep focus so arrow keys can keep adjusting.
+diffSlider.addEventListener('pointerup', () => diffSlider.blur());
 
 window.addEventListener('keydown', (e) => {
   // Let arrow keys adjust the slider while it is focused.
