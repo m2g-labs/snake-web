@@ -29,3 +29,18 @@ test('tickMs decreases and is capped', () => {
   assert.equal(tickMs(-3), BASE_TICK_MS);
   assert.equal(tickMs(NaN), BASE_TICK_MS);
 });
+
+test('throwing localStorage getter is safe with default store', () => {
+  const desc = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    get() { throw new Error('SecurityError'); },
+  });
+  try {
+    assert.equal(loadHighScore(), 0);
+    assert.equal(saveHighScore(5), false);
+  } finally {
+    if (desc) Object.defineProperty(globalThis, 'localStorage', desc);
+    else delete globalThis.localStorage;
+  }
+});
