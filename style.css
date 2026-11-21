@@ -1,0 +1,2 @@
+body { margin: 0; background: #111; color: #eee; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+canvas { background: #000; max-width: 100%; }
