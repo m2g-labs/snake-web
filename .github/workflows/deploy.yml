@@ -36,8 +36,14 @@ jobs:
       - name: Assemble site
         run: |
           mkdir _site
-          cp -r index.html style.css src _site/
+          cp -r index.html style.css icon.svg manifest.webmanifest src _site/
           if [ -d assets ]; then cp -r assets _site/; fi
+          # Fail if a local file referenced by index.html is missing from _site
+          missing=0
+          for f in $(grep -oE '(href|src)="[^"#?]+"' index.html | sed -E 's/^[a-z]+="//; s/"$//' | grep -vE '^(https?:)?//|^[a-z]+:'); do
+            if [ ! -e "_site/$f" ]; then echo "::error::missing from _site: $f"; missing=1; fi
+          done
+          exit $missing
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
