@@ -12,13 +12,16 @@ export const DIRS = {
   right: { x: 1, y: 0 },
 };
 
+export const FOOD_KINDS = 5;
+
 function placeFood(state) {
   const occ = new Set(state.snake.map((s) => s.y * state.cols + s.x));
   const free = [];
   for (let i = 0; i < state.cols * state.rows; i++) if (!occ.has(i)) free.push(i);
   if (free.length === 0) return null;
   const i = free[Math.min(free.length - 1, Math.floor(state.rng() * free.length))];
-  return { x: i % state.cols, y: Math.floor(i / state.cols) };
+  const kind = Math.min(FOOD_KINDS - 1, Math.floor(state.rng() * FOOD_KINDS));
+  return { x: i % state.cols, y: Math.floor(i / state.cols), kind };
 }
 
 export function createGame({ cols = 20, rows = 20, rng = Math.random } = {}) {

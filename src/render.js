@@ -1,5 +1,7 @@
 // Canvas drawing only. No game rules: it reads state produced by game.js.
 
+export const FOOD_ICONS = ['🍎','🍒','🍇','🍓','🍊'];
+
 export function fitCellSize(availW, availH, cols, rows) {
   return Math.max(1, Math.floor(Math.min(availW / cols, availH / rows)));
 }
@@ -28,7 +30,14 @@ export function draw(ctx, state, cell, dpr = 1) {
   for (let x = 1; x < state.cols; x++) { ctx.moveTo(x * cell, 0); ctx.lineTo(x * cell, h); }
   for (let y = 1; y < state.rows; y++) { ctx.moveTo(0, y * cell); ctx.lineTo(w, y * cell); }
   ctx.stroke();
-  if (state.food) {
+  if (state.food && cell >= 10) {
+    ctx.font = `${Math.round(cell * 0.8)}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#fff';
+    const icon = FOOD_ICONS[(state.food.kind || 0) % FOOD_ICONS.length];
+    ctx.fillText(icon, state.food.x * cell + cell / 2, state.food.y * cell + cell / 2);
+  } else if (state.food) {
     ctx.fillStyle = '#f33';
     ctx.fillRect(state.food.x * cell + 1, state.food.y * cell + 1, cell - 2, cell - 2);
   }
