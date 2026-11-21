@@ -80,7 +80,8 @@ export const MIN_TICK_MS = 60;
 export const TICK_STEP_MS = 3;
 
 // Tick interval shrinks by TICK_STEP_MS per point, capped at MIN_TICK_MS.
-export function tickMs(score) {
+// MIN is scaled so it is 50% of the base (default base keeps MIN_TICK_MS).
+export function tickMs(score, baseMs = BASE_TICK_MS) {
   const s = Number.isFinite(score) && score > 0 ? score : 0;
-  return Math.max(MIN_TICK_MS, BASE_TICK_MS - s * TICK_STEP_MS);
+  return Math.max(baseMs * (MIN_TICK_MS / BASE_TICK_MS), baseMs - s * TICK_STEP_MS);
 }
