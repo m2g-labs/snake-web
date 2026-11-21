@@ -74,3 +74,13 @@ export function step(state) {
   }
   return state;
 }
+
+export const BASE_TICK_MS = 120;
+export const MIN_TICK_MS = 60;
+export const TICK_STEP_MS = 3;
+
+// Tick interval shrinks by TICK_STEP_MS per point, capped at MIN_TICK_MS.
+export function tickMs(score) {
+  const s = Number.isFinite(score) && score > 0 ? score : 0;
+  return Math.max(MIN_TICK_MS, BASE_TICK_MS - s * TICK_STEP_MS);
+}
