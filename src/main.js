@@ -1,12 +1,10 @@
 import { createGame, setDirection, step, tickMs } from './game.js';
 import { detectSwipe } from './swipe.js';
 import { keyToAction, shouldPreventDefault, modeOnFocusLoss } from './input.js';
-import { loadHighScore, saveHighScore } from './storage.js';
+import { loadHighScore, saveHighScore, loadDifficulty, saveDifficulty } from './storage.js';
+import { boardSize, baseTickMs } from './difficulty.js';
 import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
 import { draw, resizeCanvas } from './render.js';
-
-const COLS = 20;
-const ROWS = 20;
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -17,8 +15,22 @@ const overlayMsg = document.getElementById('overlay-msg');
 const bestEl = document.getElementById('best');
 const dpad = document.getElementById('dpad');
 const actionBtn = document.getElementById('action');
+const diffWrap = document.getElementById('difficulty');
+const diffSlider = document.getElementById('difficulty-slider');
+const diffLabel = document.getElementById('difficulty-label');
 
-let state = createGame({ cols: COLS, rows: ROWS });
+let level = loadDifficulty(); // level applied to the current/next game
+let size = boardSize(level);
+let baseMs = baseTickMs(level);
+diffSlider.value = String(level);
+
+function updateDiffLabel() {
+  const l = Number(diffSlider.value);
+  diffLabel.textContent = `Level ${l} · ${boardSize(l)}×${boardSize(l)} board · ${baseTickMs(l)} ms/tick`;
+}
+updateDiffLabel();
+
+let state = createGame({ cols: size, rows: size });
 let mode = 'start'; // start | running | paused | over
 let cell = 1;
 let dpr = 1;
@@ -30,7 +42,7 @@ function resize() {
   dpr = window.devicePixelRatio || 1;
   const w = Math.min(window.innerWidth - 16, 800);
   const h = window.innerHeight - 70 - (dpad.offsetHeight || 0);
-  cell = resizeCanvas(canvas, w, h, COLS, ROWS, dpr);
+  cell = resizeCanvas(canvas, w, h, size, size, dpr);
   render();
 }
 
@@ -42,6 +54,7 @@ function render() {
 
 function showOverlay() {
   overlay.hidden = mode === 'running';
+  diffWrap.hidden = !(mode === 'start' || mode === 'over');
   if (mode === 'start') {
     overlayTitle.textContent = 'Snake';
     overlayMsg.textContent = 'Arrow keys / WASD to move. Space to pause.';
@@ -63,9 +76,13 @@ function setMode(m) {
 }
 
 function restart() {
-  state = createGame({ cols: COLS, rows: ROWS });
+  if (document.activeElement === diffSlider) diffSlider.blur(); // so game keys steer
+  level = Number(diffSlider.value);
+  size = boardSize(level);
+  baseMs = baseTickMs(level);
+  state = createGame({ cols: size, rows: size });
   acc = 0;
-  render();
+  resize();
   setMode('running');
 }
 
@@ -80,8 +97,8 @@ function frame(t) {
   last = t;
   if (mode === 'running') {
     acc += dt;
-    while (acc >= tickMs(state.score)) {
-      acc -= tickMs(state.score);
+    while (acc >= tickMs(state.score, baseMs)) {
+      acc -= tickMs(state.score, baseMs);
       const before = state.score;
       step(state);
       if (state.score > before) vibrate(HAPTIC_EAT);
@@ -97,7 +114,18 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
+diffSlider.addEventListener('input', updateDiffLabel);
+diffSlider.addEventListener('change', () => {
+  saveDifficulty(Number(diffSlider.value));
+  updateDiffLabel();
+});
+// Pointer-driven changes: release focus so game keys work again.
+// Keyboard steps keep focus so arrow keys can keep adjusting.
+diffSlider.addEventListener('pointerup', () => diffSlider.blur());
+
 window.addEventListener('keydown', (e) => {
+  // Let arrow keys adjust the slider while it is focused.
+  if (e.target === diffSlider && e.key.startsWith('Arrow')) return;
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (shouldPreventDefault(e.key)) e.preventDefault();
   const act = keyToAction(e.key, mode);
