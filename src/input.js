@@ -21,3 +21,8 @@ export function keyToAction(key, mode) {
 export function shouldPreventDefault(key) {
   return key.startsWith('Arrow') || key === ' ';
 }
+
+// Mode to switch to when the tab/window loses focus (null = no change).
+export function modeOnFocusLoss(mode) {
+  return mode === 'running' ? 'paused' : null;
+}

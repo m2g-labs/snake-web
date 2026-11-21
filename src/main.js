@@ -1,6 +1,6 @@
 import { createGame, setDirection, step, tickMs } from './game.js';
 import { detectSwipe } from './swipe.js';
-import { keyToAction, shouldPreventDefault } from './input.js';
+import { keyToAction, shouldPreventDefault, modeOnFocusLoss } from './input.js';
 import { loadHighScore, saveHighScore } from './storage.js';
 import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
 import { draw, resizeCanvas } from './render.js';
@@ -113,6 +113,16 @@ window.addEventListener('keydown', (e) => {
 });
 
 actionBtn.addEventListener('click', action);
+
+// Auto-pause when the tab/window loses focus; never auto-resume.
+function autoPause() {
+  const next = modeOnFocusLoss(mode);
+  if (!next) return;
+  acc = 0;
+  setMode(next);
+}
+document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); });
+window.addEventListener('blur', autoPause);
 
 // Touch: swipe on canvas + d-pad
 let touchStart = null;

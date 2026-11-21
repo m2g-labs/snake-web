@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { keyToAction, shouldPreventDefault } from '../src/input.js';
+import { keyToAction, shouldPreventDefault, modeOnFocusLoss } from '../src/input.js';
 
 test('arrows and WASD map to directions', () => {
   assert.deepEqual(keyToAction('ArrowUp', 'running'), { type: 'dir', dir: 'up' });
@@ -23,4 +23,9 @@ test('arrows and space prevent default', () => {
   assert.ok(shouldPreventDefault('ArrowDown'));
   assert.ok(shouldPreventDefault(' '));
   assert.ok(!shouldPreventDefault('x'));
+});
+
+test('modeOnFocusLoss pauses only a running game', () => {
+  assert.equal(modeOnFocusLoss('running'), 'paused');
+  for (const m of ['start', 'paused', 'over']) assert.equal(modeOnFocusLoss(m), null);
 });
