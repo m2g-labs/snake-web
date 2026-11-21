@@ -15,6 +15,7 @@ Created by the agent factory from m2g-labs/agent-factory#4.
 - `src/game.js` – pure game logic (no DOM), unit tested
 - `src/swipe.js` – pure swipe detection (unit tested)
 - `src/render.js` – canvas drawing (no game rules)
+- `src/input.js` – pure key->action mapping
 - `test/*.test.js` – tests using `node:test`
 
 ## Commands
