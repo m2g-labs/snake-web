@@ -3,7 +3,7 @@
 A dependency-free snake game (vanilla JS + canvas).
 
 ## Gameplay
-Steer the snake to eat food and grow. Hitting a wall or yourself ends the game. Your best score is saved in the browser (localStorage).
+Steer the snake to eat food and grow. The snake wraps around the walls; hitting yourself ends the game. Your best score is saved in the browser (localStorage).
 
 ## Controls
 **Desktop:** Arrow keys or WASD to steer; Space or P to pause/resume; Space or Enter to start/restart.

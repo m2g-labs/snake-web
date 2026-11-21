@@ -50,11 +50,10 @@ export function step(state) {
   if (state.queue.length) state.dir = state.queue.shift();
   const d = DIRS[state.dir];
   const head = state.snake[0];
-  const nh = { x: head.x + d.x, y: head.y + d.y };
-  if (nh.x < 0 || nh.y < 0 || nh.x >= state.cols || nh.y >= state.rows) {
-    state.gameOver = true;
-    return state;
-  }
+  const nh = {
+    x: (head.x + d.x + state.cols) % state.cols,
+    y: (head.y + d.y + state.rows) % state.rows,
+  };
   const eating = state.food && nh.x === state.food.x && nh.y === state.food.y;
   const body = eating ? state.snake : state.snake.slice(0, -1);
   if (body.some((s) => s.x === nh.x && s.y === nh.y)) {
