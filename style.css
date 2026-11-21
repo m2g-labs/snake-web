@@ -7,3 +7,13 @@ canvas { background: #000; display: block; }
 #overlay[hidden] { display: none; }
 #overlay h1 { margin: 0 0 8px; }
 #overlay button { font-size: 18px; padding: 8px 20px; cursor: pointer; }
+html, body { overscroll-behavior: none; touch-action: manipulation; }
+canvas { touch-action: none; }
+#dpad { display: none; grid-template-columns: repeat(3, 64px); grid-template-rows: repeat(2, 64px); gap: 8px; justify-content: center; margin: 8px auto; touch-action: none; }
+#dpad button { min-width: 48px; min-height: 48px; font-size: 24px; border: 0; border-radius: 12px; background: #333; color: #eee; touch-action: none; user-select: none; }
+#dpad button:active { background: #555; }
+#dpad [data-dir=up] { grid-column: 2; grid-row: 1; }
+#dpad [data-dir=left] { grid-column: 1; grid-row: 2; }
+#dpad [data-dir=down] { grid-column: 2; grid-row: 2; }
+#dpad [data-dir=right] { grid-column: 3; grid-row: 2; }
+@media (hover: none) and (pointer: coarse) { #dpad { display: grid; } }
