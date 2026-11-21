@@ -1,4 +1,5 @@
 import { createGame, setDirection, step, tickMs } from './game.js';
+import { detectSwipe } from './swipe.js';
 import { keyToAction, shouldPreventDefault } from './input.js';
 import { loadHighScore, saveHighScore } from './storage.js';
 import { draw, resizeCanvas } from './render.js';
@@ -13,6 +14,7 @@ const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const overlayMsg = document.getElementById('overlay-msg');
 const bestEl = document.getElementById('best');
+const dpad = document.getElementById('dpad');
 const actionBtn = document.getElementById('action');
 
 let state = createGame({ cols: COLS, rows: ROWS });
@@ -26,7 +28,7 @@ let last = 0;
 function resize() {
   dpr = window.devicePixelRatio || 1;
   const w = Math.min(window.innerWidth - 16, 800);
-  const h = window.innerHeight - 70;
+  const h = window.innerHeight - 70 - (dpad.offsetHeight || 0);
   cell = resizeCanvas(canvas, w, h, COLS, ROWS, dpr);
   render();
 }
@@ -107,6 +109,34 @@ window.addEventListener('keydown', (e) => {
 });
 
 actionBtn.addEventListener('click', action);
+
+// Touch: swipe on canvas + d-pad
+let touchStart = null;
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  const t = e.changedTouches[0];
+  touchStart = { x: t.clientX, y: t.clientY };
+}, { passive: false });
+canvas.addEventListener('touchmove', (e) => e.preventDefault(), { passive: false });
+canvas.addEventListener('touchend', (e) => {
+  e.preventDefault();
+  if (!touchStart) return;
+  const t = e.changedTouches[0];
+  const dir = detectSwipe(t.clientX - touchStart.x, t.clientY - touchStart.y);
+  touchStart = null;
+  if (dir && mode === 'running') setDirection(state, dir);
+}, { passive: false });
+canvas.addEventListener('touchcancel', () => { touchStart = null; });
+
+dpad.addEventListener('pointerdown', (e) => {
+  const btn = e.target.closest('button[data-dir]');
+  if (!btn) return;
+  e.preventDefault();
+  if (mode === 'running') setDirection(state, btn.dataset.dir);
+});
+// Block pinch-zoom gestures (iOS Safari)
+document.addEventListener('gesturestart', (e) => e.preventDefault());
+
 window.addEventListener('resize', resize);
 resize();
 showOverlay();
