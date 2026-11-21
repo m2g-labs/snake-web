@@ -13,6 +13,7 @@ Created by the agent factory from m2g-labs/agent-factory#4.
 - `style.css` – styles
 - `src/main.js` – DOM/canvas/input wiring only
 - `src/game.js` – pure game logic (no DOM), unit tested
+- `src/render.js` – canvas drawing (no game rules)
 - `test/*.test.js` – tests using `node:test`
 
 ## Commands

@@ -7,7 +7,17 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <canvas id="game" width="400" height="400"></canvas>
+  <main>
+    <div id="score">Score: 0</div>
+    <div id="board">
+      <canvas id="game"></canvas>
+      <div id="overlay">
+        <h1 id="overlay-title">Snake</h1>
+        <p id="overlay-msg"></p>
+        <button id="action" type="button">Start</button>
+      </div>
+    </div>
+  </main>
   <script type="module" src="src/main.js"></script>
 </body>
 </html>
