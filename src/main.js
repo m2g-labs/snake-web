@@ -1,4 +1,5 @@
 import { createGame, setDirection, step } from './game.js';
+import { keyToAction, shouldPreventDefault } from './input.js';
 import { draw, resizeCanvas } from './render.js';
 
 const COLS = 20;
@@ -86,28 +87,18 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
-const KEYS = {
-  ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
-  w: 'up', s: 'down', a: 'left', d: 'right',
-  W: 'up', S: 'down', A: 'left', D: 'right',
-};
-
 window.addEventListener('keydown', (e) => {
-  if (e.key === ' ' || e.key === 'p' || e.key === 'P') {
-    e.preventDefault();
-    if (mode === 'running') setMode('paused');
-    else if (mode === 'paused') setMode('running');
-    return;
-  }
-  if (e.key === 'Enter' && mode !== 'running') {
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (shouldPreventDefault(e.key)) e.preventDefault();
+  const act = keyToAction(e.key, mode);
+  if (!act) return;
+  if (act.type === 'dir') {
+    if (mode === 'running') setDirection(state, act.dir);
+  } else if (act.type === 'pause') {
+    setMode(mode === 'running' ? 'paused' : 'running');
+  } else if (act.type === 'start') {
     e.preventDefault();
     action();
-    return;
-  }
-  const dir = KEYS[e.key];
-  if (dir) {
-    e.preventDefault();
-    if (mode === 'running') setDirection(state, dir);
   }
 });
 
