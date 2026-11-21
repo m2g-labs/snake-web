@@ -2,6 +2,7 @@ import { createGame, setDirection, step, tickMs } from './game.js';
 import { detectSwipe } from './swipe.js';
 import { keyToAction, shouldPreventDefault } from './input.js';
 import { loadHighScore, saveHighScore } from './storage.js';
+import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
 import { draw, resizeCanvas } from './render.js';
 
 const COLS = 20;
@@ -81,9 +82,12 @@ function frame(t) {
     acc += dt;
     while (acc >= tickMs(state.score)) {
       acc -= tickMs(state.score);
+      const before = state.score;
       step(state);
+      if (state.score > before) vibrate(HAPTIC_EAT);
       if (state.score > best) { best = state.score; saveHighScore(best); }
       if (state.gameOver) {
+        vibrate(HAPTIC_OVER);
         setMode('over');
         break;
       }
