@@ -14,13 +14,13 @@ test('clamp', () => {
   assert.equal(clampDifficulty(3), 3);
 });
 test('mappings monotonic with endpoints', () => {
-  assert.equal(boardSize(1), 30); assert.equal(boardSize(10), 12);
-  assert.equal(baseTickMs(1), 180); assert.equal(baseTickMs(10), 70);
+  assert.equal(boardSize(1), 24); assert.equal(boardSize(10), 16);
+  assert.equal(baseTickMs(1), 160); assert.equal(baseTickMs(10), 90);
   for (let l = 2; l <= 10; l++) {
-    assert.ok(boardSize(l) < boardSize(l - 1));
+    assert.ok(boardSize(l) <= boardSize(l - 1));
     assert.ok(baseTickMs(l) < baseTickMs(l - 1));
   }
-  assert.equal(boardSize(5), 22); assert.equal(baseTickMs(5), 131);
+  assert.equal(boardSize(5), 20); assert.equal(baseTickMs(5), 129);
 });
 test('storage', () => {
   assert.equal(loadDifficulty(mem()), 5);
@@ -32,6 +32,7 @@ test('storage', () => {
 test('tickMs base', () => {
   assert.equal(tickMs(0), BASE_TICK_MS);
   assert.equal(tickMs(1e6), MIN_TICK_MS);
-  assert.equal(tickMs(1e6, 180), 90);
-  assert.equal(tickMs(0, 70), 70);
+  assert.equal(tickMs(1e6, 160), 104);
+  assert.equal(tickMs(10, 160), 150);
+  assert.equal(tickMs(0, 90), 90);
 });

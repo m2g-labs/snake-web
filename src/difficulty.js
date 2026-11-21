@@ -14,8 +14,8 @@ function lerp(level, a, b) {
   return Math.round(a + (b - a) * t);
 }
 
-// Square board size: 30 (level 1) down to 12 (level 10).
-export function boardSize(level) { return lerp(level, 30, 12); }
+// Square board size: 24 (level 1) down to 16 (level 10).
+export function boardSize(level) { return lerp(level, 24, 16); }
 
-// Base tick: 180ms (level 1) down to 70ms (level 10).
-export function baseTickMs(level) { return lerp(level, 180, 70); }
+// Base tick: 160ms (level 1) down to 90ms (level 10).
+export function baseTickMs(level) { return lerp(level, 160, 90); }
