@@ -44,3 +44,16 @@ test('throwing localStorage getter is safe with default store', () => {
     else delete globalThis.localStorage;
   }
 });
+
+import { loadBoardSize, saveBoardSize, BOARD_SIZE_KEY } from '../src/storage.js';
+import { BOARD_SIZES } from '../src/board.js';
+test('board size round trips and defaults', () => {
+  const s = mem();
+  assert.equal(loadBoardSize(s), 20);
+  for (const n of BOARD_SIZES) { assert.equal(saveBoardSize(n, s), true); assert.equal(loadBoardSize(s), n); }
+  s.setItem(BOARD_SIZE_KEY, 'zzz');
+  assert.equal(loadBoardSize(s), 20);
+  assert.equal(loadBoardSize(bad), 20);
+  assert.equal(saveBoardSize(15, bad), false);
+  assert.equal(loadBoardSize(null), 20);
+});

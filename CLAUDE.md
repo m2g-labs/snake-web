@@ -16,6 +16,7 @@ Created by the agent factory from m2g-labs/agent-factory#4.
 - `src/swipe.js` – pure swipe detection (unit tested)
 - `src/render.js` – canvas drawing (no game rules); snake drawn as a tapered rounded body with eyed head (square fallback if cell < 6); exports pure helpers `headDirection(snake)` and `segmentRadius(i, length, cell)`
 - `src/rng.js` – pure seeded PRNG: `seededRng(seed)` (mulberry32, floats in [0,1)) and `randomSeed()` (uint32); pass as `createGame({rng})` for identical boards
+- `src/board.js` – pure board size options (`BOARD_SIZES`, `BOARD_SIZE_DEFAULT`, `clampBoardSize`); persisted via `loadBoardSize`/`saveBoardSize` in `src/storage.js`
 - `src/input.js` – pure key->action mapping
 - `src/haptics.js` – feature-detected `vibrate()` + haptic patterns (unit tested)
 - `src/difficulty.js` – pure level (1–10) -> board size / base tick mapping; `src/storage.js` persists high score and difficulty
