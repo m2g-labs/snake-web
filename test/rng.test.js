@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { seededRng, randomSeed } from '../src/rng.js';
-import { createGame, step } from '../src/game.js';
+import { createGame, step, setDirection } from '../src/game.js';
 
 const take = (r, n) => Array.from({ length: n }, () => r());
 
@@ -19,15 +19,23 @@ test('randomSeed returns uint32', () => {
   assert.ok(Number.isInteger(s) && s >= 0 && s <= 0xffffffff);
 });
 
-test('two seeded games produce identical food positions', () => {
+test('two seeded games produce identical food sequences', () => {
   const a = createGame({ rng: seededRng(7) });
   const b = createGame({ rng: seededRng(7) });
-  const foods = [[], []];
-  for (let i = 0; i < 200 && !a.gameOver; i++) {
-    foods[0].push(a.food && { ...a.food });
-    foods[1].push(b.food && { ...b.food });
+  const seqA = [{ ...a.food }];
+  const seqB = [{ ...b.food }];
+  for (let i = 0; i < 500 && !a.gameOver && !b.gameOver && a.score < 5; i++) {
+    // same input to both games: steer toward game a's food
+    const h = a.snake[0];
+    const dir = h.x < a.food.x ? 'right' : h.x > a.food.x ? 'left'
+      : h.y < a.food.y ? 'down' : 'up';
+    setDirection(a, dir); setDirection(b, dir);
+    const before = a.score;
     step(a); step(b);
+    if (a.score !== before) { seqA.push({ ...a.food }); seqB.push({ ...b.food }); }
   }
-  assert.deepEqual(foods[0], foods[1]);
-  assert.deepEqual(a.food, b.food);
+  assert.ok(a.score >= 3, 'snake should eat at least 3 times');
+  assert.deepEqual(seqA, seqB);
+  const distinct = new Set(seqA.map((f) => `${f.x},${f.y}`));
+  assert.ok(distinct.size >= 3);
 });
