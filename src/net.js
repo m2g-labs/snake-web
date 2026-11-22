@@ -16,7 +16,7 @@ export async function createRoom({ relayUrl, fetchImpl = globalThis.fetch } = {}
   return res.json();
 }
 
-// Connects to {relayUrl}/rooms/{code}. Returns {on, send, close}.
+// Connects to {relayUrl}/rooms/{code}/ws. Returns {on, send, close}.
 export function connect({
   relayUrl, code, token, helloExtra = {},
   WebSocketImpl = globalThis.WebSocket,
@@ -42,7 +42,7 @@ export function connect({
 
   function open() {
     setStatus(attempt === 0 ? 'connecting' : 'reconnecting');
-    const sock = new WebSocketImpl(`${wsBase(relayUrl)}/rooms/${encodeURIComponent(code)}`);
+    const sock = new WebSocketImpl(`${wsBase(relayUrl)}/rooms/${encodeURIComponent(code)}/ws`);
     ws = sock;
     sock.onopen = () => {
       if (sock !== ws) return;

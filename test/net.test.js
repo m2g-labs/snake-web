@@ -44,7 +44,7 @@ test('dispatches decoded messages by type and ignores invalid frames', () => {
   socks[0].msg({ type: 'bogus' });
   socks[0].msg({ type: 'opponentScore', score: -1 });
   assert.deepEqual(got, [{ type: 'opponentScore', score: 3 }]);
-  assert.equal(socks[0].url, 'wss://r.example/rooms/ABCD');
+  assert.equal(socks[0].url, 'wss://r.example/rooms/ABCD/ws');
   net.send({ type: 'score', score: 5 });
   assert.deepEqual(socks[0].sent.at(-1), { type: 'score', score: 5 });
 });
