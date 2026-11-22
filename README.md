@@ -19,6 +19,11 @@ Serve the folder statically, e.g. `python3 -m http.server`, then open http://loc
 ## Test
 `npm test` (runs `node --test`).
 
+## Relay server (multiplayer scaffold)
+`server/` holds a Cloudflare Worker + Durable Object (`Room`, SQLite-backed, Free plan). No npm dependencies:
+`cd server && npx wrangler dev` starts it locally; `npx wrangler deploy` publishes it.
+Routes: `POST /rooms` -> `{code}`; `GET /rooms/:code/ws` (WebSocket); unknown/expired code -> 404.
+
 ## Deployment
 Live: https://m2g-labs.github.io/snake-web/
 
