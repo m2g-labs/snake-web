@@ -3,7 +3,7 @@ import { detectSwipe } from './swipe.js';
 import { keyToAction, shouldPreventDefault, modeOnFocusLoss } from './input.js';
 import { loadHighScore, saveHighScore, loadDifficulty, saveDifficulty, loadBoardSize, saveBoardSize } from './storage.js';
 import { clampBoardSize } from './board.js';
-import { baseTickMs, speedStepMs, MIN_TICK_MS } from './difficulty.js';
+import { clampDifficulty, baseTickMs, speedStepMs, MIN_TICK_MS } from './difficulty.js';
 import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
 import { normalizeCode, parseJoinParam, buildShareUrl, errorText } from './lobby.js';
 import { connect, createRoom } from './net.js';
@@ -139,8 +139,9 @@ diffSlider.addEventListener('pointerup', () => diffSlider.blur());
 window.addEventListener('keydown', (e) => {
   // Let arrow keys adjust the slider while it is focused.
   if (e.target === diffSlider && e.key.startsWith('Arrow')) return;
+  // keys belong to the select while focused
   if (e.target === sizeSelect) return;
-  if (e.target.closest && e.target.closest('#lobby')) return; // lobby inputs never steer // keys belong to the select while focused
+  if (e.target.closest && e.target.closest("#lobby")) return; // lobby inputs never steer
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (shouldPreventDefault(e.key)) e.preventDefault();
   const act = keyToAction(e.key, mode);
@@ -195,7 +196,7 @@ function enterRoom(code, creator) {
   lobbyShare.hidden = !creator;
   lobbyWait.textContent = creator ? 'Waiting for opponent…' : 'Joined. Waiting for host…';
   lobbyError.textContent = '';
-  conn = connect({ relayUrl: RELAY_URL, code, helloExtra: creator ? { level } : {} });
+  conn = connect({ relayUrl: RELAY_URL, code, helloExtra: creator ? { level: clampDifficulty(Number(diffSlider.value)) } : {} });
   conn.on(T.ERROR, (m) => { lobbyReset(); lobbyError.textContent = errorText(m.reason); });
   conn.on('status', (st) => { if (st === 'failed') { lobbyReset(); lobbyError.textContent = errorText(''); } });
   conn.on(T.OPPONENT_JOINED, () => { lobbyWait.textContent = 'Opponent joined!'; });
