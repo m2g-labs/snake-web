@@ -4,7 +4,7 @@ import { keyToAction, shouldPreventDefault, modeOnFocusLoss } from './input.js';
 import { loadHighScore, saveHighScore, loadDifficulty, saveDifficulty } from './storage.js';
 import { boardSize, baseTickMs } from './difficulty.js';
 import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
-import { draw, resizeCanvas } from './render.js';
+import { draw, resizeCanvas, availableBoardPx } from './render.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -40,8 +40,7 @@ let last = 0;
 
 function resize() {
   dpr = window.devicePixelRatio || 1;
-  const w = Math.min(window.innerWidth - 16, 800);
-  const h = window.innerHeight - 70 - (dpad.offsetHeight || 0);
+  const { w, h } = availableBoardPx(window.innerWidth, window.innerHeight, dpad.offsetHeight || 0);
   cell = resizeCanvas(canvas, w, h, size, size, dpr);
   render();
 }

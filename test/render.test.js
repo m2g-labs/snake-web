@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { fitCellSize, resizeCanvas, headDirection, segmentRadius, draw, FOOD_ICONS } from '../src/render.js';
+import { availableBoardPx, fitCellSize, resizeCanvas, headDirection, segmentRadius, draw, FOOD_ICONS } from '../src/render.js';
 import { createGame } from '../src/game.js';
 
 test('headDirection', () => {
@@ -76,4 +76,11 @@ test('draw renders food emoji centered via fillText, red square below 10px', () 
   // background + food square
   assert.equal(b.rects.length, 2);
   assert.deepEqual(b.rects[1].slice(0, 2), [9, 17]);
+});
+
+test('availableBoardPx', () => {
+  assert.deepEqual(availableBoardPx(1920, 1080, 0), { w: 560, h: 560 });
+  assert.deepEqual(availableBoardPx(375, 667, 150), { w: 359, h: 447 });
+  assert.deepEqual(availableBoardPx(10, 50, 100), { w: 0, h: 0 });
+  assert.deepEqual(availableBoardPx(1000, 1000, 0, 300), { w: 300, h: 300 });
 });
