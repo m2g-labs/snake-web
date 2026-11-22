@@ -1,7 +1,8 @@
 import { createGame, setDirection, step, tickMs } from './game.js';
 import { detectSwipe } from './swipe.js';
 import { keyToAction, shouldPreventDefault, modeOnFocusLoss } from './input.js';
-import { loadHighScore, saveHighScore, loadDifficulty, saveDifficulty } from './storage.js';
+import { loadHighScore, saveHighScore, loadDifficulty, saveDifficulty, loadBoardSize, saveBoardSize } from './storage.js';
+import { clampBoardSize } from './board.js';
 import { baseTickMs, speedStepMs, MIN_TICK_MS } from './difficulty.js';
 import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
 import { draw, resizeCanvas, availableBoardPx } from './render.js';
@@ -20,7 +21,10 @@ const diffSlider = document.getElementById('difficulty-slider');
 const diffLabel = document.getElementById('difficulty-label');
 
 let level = loadDifficulty(); // level applied to the current/next game
-const size = 20;
+const sizeWrap = document.getElementById('board-size');
+const sizeSelect = document.getElementById('board-size-select');
+let size = loadBoardSize();
+sizeSelect.value = String(size);
 let baseMs = baseTickMs(level);
 let stepMs = speedStepMs(level);
 diffSlider.value = String(level);
@@ -55,6 +59,7 @@ function render() {
 function showOverlay() {
   overlay.hidden = mode === 'running';
   diffWrap.hidden = !(mode === 'start' || mode === 'over');
+  sizeWrap.hidden = diffWrap.hidden;
   if (mode === 'start') {
     overlayTitle.textContent = 'Snake';
     overlayMsg.textContent = 'Arrow keys / WASD to move. Space to pause.';
@@ -77,6 +82,8 @@ function setMode(m) {
 
 function restart() {
   if (document.activeElement === diffSlider) diffSlider.blur(); // so game keys steer
+  if (document.activeElement === sizeSelect) sizeSelect.blur();
+  size = clampBoardSize(sizeSelect.value);
   level = Number(diffSlider.value);
   baseMs = baseTickMs(level);
   stepMs = speedStepMs(level);
@@ -114,6 +121,7 @@ function frame(t) {
   requestAnimationFrame(frame);
 }
 
+sizeSelect.addEventListener('change', () => saveBoardSize(clampBoardSize(sizeSelect.value)));
 diffSlider.addEventListener('input', updateDiffLabel);
 diffSlider.addEventListener('change', () => {
   saveDifficulty(Number(diffSlider.value));
@@ -126,6 +134,7 @@ diffSlider.addEventListener('pointerup', () => diffSlider.blur());
 window.addEventListener('keydown', (e) => {
   // Let arrow keys adjust the slider while it is focused.
   if (e.target === diffSlider && e.key.startsWith('Arrow')) return;
+  if (e.target === sizeSelect) return; // keys belong to the select while focused
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (shouldPreventDefault(e.key)) e.preventDefault();
   const act = keyToAction(e.key, mode);
