@@ -2,7 +2,7 @@ import { createGame, setDirection, step, tickMs } from './game.js';
 import { detectSwipe } from './swipe.js';
 import { keyToAction, shouldPreventDefault, modeOnFocusLoss } from './input.js';
 import { loadHighScore, saveHighScore, loadDifficulty, saveDifficulty } from './storage.js';
-import { boardSize, baseTickMs } from './difficulty.js';
+import { baseTickMs, speedStepMs, MIN_TICK_MS } from './difficulty.js';
 import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
 import { draw, resizeCanvas, availableBoardPx } from './render.js';
 
@@ -20,13 +20,14 @@ const diffSlider = document.getElementById('difficulty-slider');
 const diffLabel = document.getElementById('difficulty-label');
 
 let level = loadDifficulty(); // level applied to the current/next game
-let size = boardSize(level);
+const size = 20;
 let baseMs = baseTickMs(level);
+let stepMs = speedStepMs(level);
 diffSlider.value = String(level);
 
 function updateDiffLabel() {
   const l = Number(diffSlider.value);
-  diffLabel.textContent = `Level ${l} · ${boardSize(l)}×${boardSize(l)} board · ${baseTickMs(l)} ms/tick`;
+  diffLabel.textContent = `Level ${l} · ${baseTickMs(l)} ms start · −${speedStepMs(l)} ms per food`;
 }
 updateDiffLabel();
 
@@ -77,8 +78,8 @@ function setMode(m) {
 function restart() {
   if (document.activeElement === diffSlider) diffSlider.blur(); // so game keys steer
   level = Number(diffSlider.value);
-  size = boardSize(level);
   baseMs = baseTickMs(level);
+  stepMs = speedStepMs(level);
   state = createGame({ cols: size, rows: size });
   acc = 0;
   resize();
@@ -96,8 +97,8 @@ function frame(t) {
   last = t;
   if (mode === 'running') {
     acc += dt;
-    while (acc >= tickMs(state.score, baseMs)) {
-      acc -= tickMs(state.score, baseMs);
+    while (acc >= tickMs(state.score, baseMs, stepMs, MIN_TICK_MS)) {
+      acc -= tickMs(state.score, baseMs, stepMs, MIN_TICK_MS);
       const before = state.score;
       step(state);
       if (state.score > before) vibrate(HAPTIC_EAT);
