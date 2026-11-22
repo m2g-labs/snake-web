@@ -19,6 +19,7 @@ Created by the agent factory from m2g-labs/agent-factory#4.
 - `src/haptics.js` – feature-detected `vibrate()` + haptic patterns (unit tested)
 - `src/difficulty.js` – pure level (1–10) -> board size / base tick mapping; `src/storage.js` persists high score and difficulty
 - Difficulty slider (`#difficulty-slider` in the start/game-over overlay) is applied on next start/restart and saved via `saveDifficulty`; the global keydown handler ignores arrow keys while it is focused, and it blurs on pointerup and at start/restart (not on keyboard change, so arrows keep adjusting)
+- `src/match.js` – pure best-of-3 match referee (`createMatch/addPlayer/startRound/reportScore/reportDeath/forfeit`, each returns events to broadcast; draws replay the round); `src/protocol.js` – message type constants, `encode`/`decode` (null on invalid), protocol documented in its header comment
 - `test/*.test.js` – tests using `node:test`
 
 ## Commands
