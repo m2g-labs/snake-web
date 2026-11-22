@@ -9,6 +9,9 @@ import { normalizeCode, parseJoinParam, buildShareUrl, errorText } from './lobby
 import { connect, createRoom } from './net.js';
 import { T } from './protocol.js';
 import { draw, resizeCanvas, availableBoardPx } from './render.js';
+import { hudText, roundResult, matchResult, disconnectText, countdownSeconds, RECONNECTING_TEXT, GRACE_SECONDS } from './matchview.js';
+import { seededRng } from './rng.js';
+import { BOARD_SIZE_DEFAULT } from './board.js';
 import { RELAY_URL as CONFIG_RELAY_URL } from './config.js';
 
 const canvas = document.getElementById('game');
@@ -41,7 +44,8 @@ function updateDiffLabel() {
 updateDiffLabel();
 
 let state = createGame({ cols: size, rows: size });
-let mode = 'start'; // start | running | paused | over
+let mode = 'start'; // start | running | paused | over | countdown | waiting
+let online = null; // {slot, oppScore, wins, round, cdTimer} while in a match
 let cell = 1;
 let dpr = 1;
 let best = loadHighScore();
@@ -58,10 +62,12 @@ function resize() {
 function render() {
   draw(ctx, state, cell, dpr);
   scoreEl.textContent = `Score: ${state.score}`;
+  if (online) hud.textContent = hudText(state.score, online.oppScore, online.wins.me, online.wins.opp);
   bestEl.textContent = `Best: ${best}`;
 }
 
 function showOverlay() {
+  if (online) return; // online overlays are managed by the match code below
   overlay.hidden = mode === 'running';
   diffWrap.hidden = !(mode === 'start' || mode === 'over');
   sizeWrap.hidden = diffWrap.hidden;
@@ -100,6 +106,7 @@ function restart() {
 }
 
 function action() {
+  if (online) return;
   if (mode === 'over' || mode === 'start') restart();
   else if (mode === 'paused') setMode('running');
   actionBtn.blur();
@@ -115,10 +122,15 @@ function frame(t) {
       const before = state.score;
       step(state);
       if (state.score > before) vibrate(HAPTIC_EAT);
-      if (state.score > best) { best = state.score; saveHighScore(best); }
+      if (online && state.score > before) conn.send({ type: T.SCORE, score: state.score });
+      if (!online && state.score > best) { best = state.score; saveHighScore(best); }
       if (state.gameOver) {
         vibrate(HAPTIC_OVER);
-        setMode('over');
+        if (online) {
+          conn.send({ type: T.DEAD, score: state.score });
+          mode = 'waiting';
+          showOnlineOverlay('Waiting for opponent…', '', []);
+        } else setMode('over');
         break;
       }
     }
@@ -150,6 +162,7 @@ window.addEventListener('keydown', (e) => {
   if (act.type === 'dir') {
     if (mode === 'running') setDirection(state, act.dir);
   } else if (act.type === 'pause') {
+    if (online) return;
     setMode(mode === 'running' ? 'paused' : 'running');
   } else if (act.type === 'start') {
     e.preventDefault();
@@ -170,10 +183,19 @@ const lobbyWait = document.getElementById('lobby-wait');
 const lobbyError = document.getElementById('lobby-error');
 const lobbyShare = document.getElementById('lobby-share');
 let conn = null;
+const hud = document.getElementById('hud');
+const banner = document.getElementById('banner');
+const matchActions = document.getElementById('match-actions');
+const readyBtn = document.getElementById('ready-btn');
+const rematchBtn = document.getElementById('rematch-btn');
+const exitBtn = document.getElementById('exit-btn');
+let discTimer = null;
+let reconnecting = false;
 let roomCode = null;
 
 function lobbyReset() {
   if (conn) { conn.close(); conn = null; }
+  online = null;
   roomCode = null;
   lobbyChoice.hidden = false;
   lobbyRoom.hidden = true;
@@ -198,10 +220,138 @@ function enterRoom(code, creator) {
   lobbyWait.textContent = creator ? 'Waiting for opponent…' : 'Joined. Waiting for host…';
   lobbyError.textContent = '';
   conn = connect({ relayUrl: RELAY_URL, code, helloExtra: creator ? { level: clampDifficulty(Number(diffSlider.value)) } : {} });
-  conn.on(T.ERROR, (m) => { lobbyReset(); lobbyError.textContent = errorText(m.reason); });
-  conn.on('status', (st) => { if (st === 'failed') { lobbyReset(); lobbyError.textContent = errorText(''); } });
+  setupOnline();
+  conn.on(T.ERROR, (m) => { if (online && online.round) { exitOnline(); return; } lobbyReset(); lobbyError.textContent = errorText(m.reason); });
+  conn.on('status', (st) => { if (st === 'failed') { if (online && online.round) { exitOnline(); return; } lobbyReset(); lobbyError.textContent = errorText(''); } });
   conn.on(T.OPPONENT_JOINED, () => { lobbyWait.textContent = 'Opponent joined!'; });
 }
+// ---- Online match ----
+function showOnlineOverlay(title, msg, buttons) {
+  overlayTitle.textContent = title;
+  overlayMsg.textContent = msg;
+  overlay.hidden = false;
+  diffWrap.hidden = sizeWrap.hidden = onlineBtn.hidden = actionBtn.hidden = true;
+  matchActions.hidden = buttons.length === 0;
+  readyBtn.hidden = !buttons.includes('ready');
+  rematchBtn.hidden = !buttons.includes('rematch');
+  exitBtn.hidden = !buttons.includes('exit');
+}
+function updateBanner() {
+  const t = reconnecting ? RECONNECTING_TEXT : (discTimer ? discTimer.text : '');
+  banner.textContent = t;
+  banner.hidden = !t;
+}
+function clearDisc() {
+  if (discTimer) clearInterval(discTimer.id);
+  discTimer = null;
+  updateBanner();
+}
+function startDisc(graceMs) {
+  clearDisc();
+  const until = Date.now() + (graceMs || GRACE_SECONDS * 1000);
+  const tick = () => {
+    if (!discTimer) return;
+    discTimer.text = disconnectText((until - Date.now()) / 1000);
+    updateBanner();
+  };
+  discTimer = { id: setInterval(tick, 250), text: '' };
+  tick();
+}
+function stopCountdown() {
+  if (online && online.cdTimer) { clearInterval(online.cdTimer); online.cdTimer = null; }
+}
+function exitOnline() {
+  stopCountdown();
+  clearDisc();
+  reconnecting = false;
+  updateBanner();
+  if (conn) { conn.close(); conn = null; }
+  online = null;
+  hud.hidden = true;
+  matchActions.hidden = true;
+  actionBtn.hidden = false;
+  state = createGame({ cols: size, rows: size });
+  mode = 'start';
+  resize();
+  showOverlay();
+}
+function onRoundStart(m) {
+  stopCountdown();
+  online.round = m.round;
+  online.oppScore = 0;
+  lobby.hidden = true;
+  hud.hidden = false;
+  level = m.level;
+  baseMs = baseTickMs(level);
+  stepMs = speedStepMs(level);
+  size = BOARD_SIZE_DEFAULT;
+  state = createGame({ cols: size, rows: size, rng: seededRng(m.seed) });
+  acc = 0;
+  mode = 'countdown';
+  overlay.hidden = true;
+  resize();
+  const begin = () => {
+    stopCountdown();
+    acc = 0;
+    mode = 'running';
+    overlay.hidden = true;
+    banner.hidden = !(reconnecting || discTimer);
+    updateBanner();
+  };
+  const tick = () => {
+    const s = countdownSeconds(m.startsAt, Date.now());
+    if (s <= 0) { begin(); return; }
+    overlayTitle.textContent = `Round ${m.round}`;
+    showOnlineOverlay(`Round ${m.round}`, `Starting in ${s}…`, []);
+  };
+  online.cdTimer = setInterval(tick, 100);
+  tick();
+}
+function onRoundEnd(m) {
+  stopCountdown();
+  const slot = online.slot;
+  const other = slot === 'p1' ? 'p2' : 'p1';
+  online.wins = { me: m.wins[slot], opp: m.wins[other] };
+  online.oppScore = m.scores[other];
+  mode = 'waiting';
+  const r = roundResult(m, slot);
+  readyBtn.disabled = false;
+  showOnlineOverlay(r.title, r.msg, ['ready']);
+  render();
+}
+function onMatchEnd(m) {
+  stopCountdown();
+  mode = 'waiting';
+  clearDisc();
+  const r = matchResult(m, online.slot);
+  showOnlineOverlay(r.title, r.msg, ['rematch', 'exit']);
+}
+function setupOnline() {
+  online = { slot: null, oppScore: 0, wins: { me: 0, opp: 0 }, round: 0, cdTimer: null };
+  conn.on(T.WELCOME, (m) => { if (online) online.slot = m.slot; });
+  conn.on(T.ROUND_START, (m) => { if (online) onRoundStart(m); });
+  conn.on(T.OPPONENT_SCORE, (m) => { if (online) { online.oppScore = m.score; render(); } });
+  conn.on(T.ROUND_END, (m) => {
+    if (online && online.slot) onRoundEnd(m);
+  });
+  conn.on(T.MATCH_END, (m) => { if (online && online.slot) onMatchEnd(m); });
+  conn.on(T.OPPONENT_LEFT, (m) => startDisc(m.graceMs));
+  conn.on(T.OPPONENT_BACK, clearDisc);
+  conn.on('status', (st) => { reconnecting = st === 'reconnecting'; updateBanner(); });
+}
+readyBtn.addEventListener('click', () => {
+  if (!conn) return;
+  conn.send({ type: T.READY });
+  readyBtn.disabled = true;
+  overlayMsg.textContent += '\nWaiting for opponent…';
+});
+exitBtn.addEventListener('click', () => { exitOnline(); });
+rematchBtn.addEventListener('click', async () => {
+  exitOnline();
+  openLobby();
+  await onCreate();
+});
+
 async function onCreate() {
   lobbyError.textContent = '';
   try {
@@ -238,6 +388,7 @@ if (joinParam) openLobby(joinParam);
 
 // Auto-pause when the tab/window loses focus; never auto-resume.
 function autoPause() {
+  if (online) return;
   const next = modeOnFocusLoss(mode);
   if (!next) return;
   acc = 0;
