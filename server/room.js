@@ -24,15 +24,15 @@ export class Room extends DurableObject {
       server.close(1008, 'full');
       return new Response(null, { status: 101, webSocket: client });
     }
-    const slot = existing.length === 0 ? 0 : 1;
+    const taken = new Set(existing.map((s) => s.deserializeAttachment()?.slot));
+    const slot = taken.has(0) ? 1 : 0;
     const token = crypto.randomUUID();
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ slot, token });
     server.send(JSON.stringify({ type: 'welcome', slot, token }));
-    if (slot === 1) {
-      const first = existing[0];
-      if (first) first.send(JSON.stringify({ type: 'opponentJoined' }));
-    }
+    // Notify the socket holding the other slot (the earlier player), if any.
+    const other = existing.find((s) => s.deserializeAttachment()?.slot === 1 - slot);
+    if (other) other.send(JSON.stringify({ type: 'opponentJoined' }));
     return new Response(null, { status: 101, webSocket: client });
   }
 
