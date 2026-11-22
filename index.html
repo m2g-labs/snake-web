@@ -35,6 +35,24 @@
           </select>
         </div>
         <button id="action" type="button">Start</button>
+        <button id="online-btn" type="button">Play online</button>
+      </div>
+      <div id="lobby" hidden>
+        <h2>Play online</h2>
+        <div id="lobby-choice">
+          <button id="lobby-create" type="button">Create room</button>
+          <div id="lobby-join-row">
+            <input id="lobby-code" type="text" maxlength="5" size="5" placeholder="CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Room code">
+            <button id="lobby-join" type="button">Join</button>
+          </div>
+        </div>
+        <div id="lobby-room" hidden>
+          <div id="lobby-room-code"></div>
+          <button id="lobby-share" type="button">Share</button>
+          <p id="lobby-wait">Waiting for opponent…</p>
+        </div>
+        <p id="lobby-error" role="alert"></p>
+        <button id="lobby-back" type="button">Back</button>
       </div>
     </div>
     <div id="dpad" aria-label="Direction pad">
