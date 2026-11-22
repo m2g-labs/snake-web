@@ -24,6 +24,7 @@ test('match results', () => {
   assert.equal(matchResult({ winner: 'p2', reason: 'forfeit' }, 'p2').title, 'You win the match!');
   assert.equal(matchResult({ winner: 'p2', reason: 'forfeit' }, 'p1').title, 'You lose the match');
   assert.match(matchResult({ winner: 'p2', reason: 'forfeit' }, 'p1').msg, /forfeit/);
+  assert.match(matchResult({ winner: 'p1', reason: 'score' }, 'p1').msg, /best of 3/);
   assert.equal(reasonText('custom'), 'custom');
 });
 

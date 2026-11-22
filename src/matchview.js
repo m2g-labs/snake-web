@@ -30,6 +30,7 @@ export function roundResult(msg, slot) {
 const REASONS = {
   forfeit: 'Opponent disconnected (forfeit)',
   wins: 'Won the best of 3',
+  score: 'Won the best of 3',
 };
 export function reasonText(reason) {
   const r = String(reason || '');

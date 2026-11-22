@@ -328,7 +328,12 @@ function onMatchEnd(m) {
 }
 function setupOnline() {
   online = { slot: null, oppScore: 0, wins: { me: 0, opp: 0 }, round: 0, cdTimer: null };
-  conn.on(T.WELCOME, (m) => { if (online) online.slot = m.slot; });
+  conn.on(T.WELCOME, (m) => {
+    if (!online) return;
+    online.slot = m.slot;
+    // Round 1 starts once both players are ready; the server keeps the flag until the opponent joins.
+    if (!online.round && conn) conn.send({ type: T.READY });
+  });
   conn.on(T.ROUND_START, (m) => { if (online) onRoundStart(m); });
   conn.on(T.OPPONENT_SCORE, (m) => { if (online) { online.oppScore = m.score; render(); } });
   conn.on(T.ROUND_END, (m) => {
