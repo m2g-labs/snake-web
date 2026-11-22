@@ -3,8 +3,11 @@ import { detectSwipe } from './swipe.js';
 import { keyToAction, shouldPreventDefault, modeOnFocusLoss } from './input.js';
 import { loadHighScore, saveHighScore, loadDifficulty, saveDifficulty, loadBoardSize, saveBoardSize } from './storage.js';
 import { clampBoardSize } from './board.js';
-import { baseTickMs, speedStepMs, MIN_TICK_MS } from './difficulty.js';
+import { clampDifficulty, baseTickMs, speedStepMs, MIN_TICK_MS } from './difficulty.js';
 import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
+import { normalizeCode, parseJoinParam, buildShareUrl, errorText } from './lobby.js';
+import { connect, createRoom } from './net.js';
+import { T } from './protocol.js';
 import { draw, resizeCanvas, availableBoardPx } from './render.js';
 
 const canvas = document.getElementById('game');
@@ -20,6 +23,7 @@ const diffWrap = document.getElementById('difficulty');
 const diffSlider = document.getElementById('difficulty-slider');
 const diffLabel = document.getElementById('difficulty-label');
 
+const onlineBtn = document.getElementById('online-btn');
 let level = loadDifficulty(); // level applied to the current/next game
 const sizeWrap = document.getElementById('board-size');
 const sizeSelect = document.getElementById('board-size-select');
@@ -60,6 +64,7 @@ function showOverlay() {
   overlay.hidden = mode === 'running';
   diffWrap.hidden = !(mode === 'start' || mode === 'over');
   sizeWrap.hidden = diffWrap.hidden;
+  onlineBtn.hidden = diffWrap.hidden;
   if (mode === 'start') {
     overlayTitle.textContent = 'Snake';
     overlayMsg.textContent = 'Arrow keys / WASD to move. Space to pause.';
@@ -134,7 +139,9 @@ diffSlider.addEventListener('pointerup', () => diffSlider.blur());
 window.addEventListener('keydown', (e) => {
   // Let arrow keys adjust the slider while it is focused.
   if (e.target === diffSlider && e.key.startsWith('Arrow')) return;
-  if (e.target === sizeSelect) return; // keys belong to the select while focused
+  // keys belong to the select while focused
+  if (e.target === sizeSelect) return;
+  if (e.target.closest && e.target.closest("#lobby")) return; // lobby inputs never steer
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (shouldPreventDefault(e.key)) e.preventDefault();
   const act = keyToAction(e.key, mode);
@@ -150,6 +157,83 @@ window.addEventListener('keydown', (e) => {
 });
 
 actionBtn.addEventListener('click', action);
+
+// ---- Online lobby ----
+const RELAY_URL = window.SNAKE_RELAY_URL || 'https://snake-relay.m2g-labs.workers.dev';
+const lobby = document.getElementById('lobby');
+const lobbyChoice = document.getElementById('lobby-choice');
+const lobbyRoom = document.getElementById('lobby-room');
+const lobbyCode = document.getElementById('lobby-code');
+const lobbyRoomCode = document.getElementById('lobby-room-code');
+const lobbyWait = document.getElementById('lobby-wait');
+const lobbyError = document.getElementById('lobby-error');
+const lobbyShare = document.getElementById('lobby-share');
+let conn = null;
+let roomCode = null;
+
+function lobbyReset() {
+  if (conn) { conn.close(); conn = null; }
+  roomCode = null;
+  lobbyChoice.hidden = false;
+  lobbyRoom.hidden = true;
+  lobbyError.textContent = '';
+}
+function openLobby(prefill) {
+  lobbyReset();
+  lobby.hidden = false;
+  if (prefill) lobbyCode.value = prefill;
+}
+function closeLobby() {
+  lobbyReset();
+  lobby.hidden = true;
+  lobbyCode.blur();
+}
+function enterRoom(code, creator) {
+  roomCode = code;
+  lobbyChoice.hidden = true;
+  lobbyRoom.hidden = false;
+  lobbyRoomCode.textContent = code;
+  lobbyShare.hidden = !creator;
+  lobbyWait.textContent = creator ? 'Waiting for opponent…' : 'Joined. Waiting for host…';
+  lobbyError.textContent = '';
+  conn = connect({ relayUrl: RELAY_URL, code, helloExtra: creator ? { level: clampDifficulty(Number(diffSlider.value)) } : {} });
+  conn.on(T.ERROR, (m) => { lobbyReset(); lobbyError.textContent = errorText(m.reason); });
+  conn.on('status', (st) => { if (st === 'failed') { lobbyReset(); lobbyError.textContent = errorText(''); } });
+  conn.on(T.OPPONENT_JOINED, () => { lobbyWait.textContent = 'Opponent joined!'; });
+}
+async function onCreate() {
+  lobbyError.textContent = '';
+  try {
+    const res = await createRoom({ relayUrl: RELAY_URL });
+    const code = normalizeCode(res && res.code);
+    if (!code) throw new Error('bad code');
+    enterRoom(code, true);
+  } catch {
+    lobbyError.textContent = errorText('');
+  }
+}
+function onJoin() {
+  const code = normalizeCode(lobbyCode.value);
+  if (!code) { lobbyError.textContent = 'Enter a 5-character room code.'; return; }
+  enterRoom(code, false);
+}
+async function onShare() {
+  if (!roomCode) return;
+  const url = buildShareUrl(roomCode, location.href);
+  try {
+    if (navigator.share) await navigator.share({ title: 'Snake', text: 'Join my Snake match', url });
+    else { await navigator.clipboard.writeText(url); lobbyWait.textContent = 'Link copied! Waiting for opponent…'; }
+  } catch { /* share cancelled */ }
+}
+onlineBtn.addEventListener('click', () => openLobby());
+document.getElementById('lobby-create').addEventListener('click', onCreate);
+document.getElementById('lobby-join').addEventListener('click', onJoin);
+document.getElementById('lobby-back').addEventListener('click', closeLobby);
+lobbyShare.addEventListener('click', onShare);
+lobbyCode.addEventListener('keydown', (e) => { if (e.key === 'Enter') onJoin(); });
+lobbyCode.addEventListener('input', () => { lobbyCode.value = lobbyCode.value.toUpperCase(); });
+const joinParam = parseJoinParam(location.search);
+if (joinParam) openLobby(joinParam);
 
 // Auto-pause when the tab/window loses focus; never auto-resume.
 function autoPause() {

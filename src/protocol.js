@@ -2,7 +2,8 @@
  * Wire protocol: JSON text messages `{type, ...fields}`.
  *
  * client -> server
- *   hello{token}        identify / resume (token may be null for new players)
+ *   hello{token,level?} identify / resume (token may be null for new players);
+ *                       level = creator's difficulty (1-10), optional
  *   score{score}        current score (non-negative integer)
  *   dead{score}         player died with final score
  *   ready               player ready for next round
@@ -36,7 +37,8 @@ const isSlot = (v) => v === 'p1' || v === 'p2';
 const pair = (v) => isObj(v) && isScore(v.p1) && isScore(v.p2);
 
 const validators = {
-  hello: (m) => m.token === null || m.token === undefined || isStr(m.token),
+  hello: (m) => (m.token === null || m.token === undefined || isStr(m.token)) &&
+    (m.level === undefined || isScore(m.level)),
   score: (m) => isScore(m.score),
   dead: (m) => isScore(m.score),
   ready: () => true,

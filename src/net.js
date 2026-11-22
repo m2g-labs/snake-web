@@ -18,7 +18,7 @@ export async function createRoom({ relayUrl, fetchImpl = globalThis.fetch } = {}
 
 // Connects to {relayUrl}/rooms/{code}. Returns {on, send, close}.
 export function connect({
-  relayUrl, code, token,
+  relayUrl, code, token, helloExtra = {},
   WebSocketImpl = globalThis.WebSocket,
   storage = globalThis.sessionStorage,
   setTimeoutImpl = globalThis.setTimeout,
@@ -47,7 +47,7 @@ export function connect({
     sock.onopen = () => {
       if (sock !== ws) return;
       attempt = 0; dropAt = null;
-      sock.send(encode({ type: T.HELLO, token: savedToken ?? null }));
+      sock.send(encode({ ...helloExtra, type: T.HELLO, token: savedToken ?? null }));
       setStatus('open');
     };
     sock.onmessage = (ev) => {
