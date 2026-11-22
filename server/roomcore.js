@@ -48,7 +48,7 @@ export class RoomCore {
   }
 
   // Returns the slot for this socket, or null if rejected (caller sends error/closes).
-  hello(msg) {
+  hello(msg, reply) {
     const s = this.state;
     let slot;
     if (typeof msg.token === 'string') {
@@ -60,21 +60,22 @@ export class RoomCore {
       s.tokens[slot] = this.newToken();
       addPlayer(s.match, name(slot));
     }
-    const reconnect = s.graceUntil[slot] !== null;
+    const reconnect = s.graceUntil[slot] !== null || (typeof msg.token === 'string' && this.connected[slot]);
     s.graceUntil[slot] = null;
     this.connected[slot] = true;
     if (slot === 0 && Number.isInteger(msg.level)) s.match.level = msg.level;
-    this.send(slot, { type: T.WELCOME, slot: name(slot), token: s.tokens[slot], code: this.code });
+    // `reply` targets the socket that sent hello (not yet bound to its slot).
+    (reply || ((m) => this.send(slot, m)))({ type: T.WELCOME, slot: name(slot), token: s.tokens[slot], code: this.code });
     if (this.connected[1 - slot]) this.send(1 - slot, { type: reconnect ? T.OPPONENT_BACK : T.OPPONENT_JOINED });
     this.touch();
     return slot;
   }
 
   // Handle a raw text message from a socket bound to `slot` (null = no hello yet). Returns the (possibly new) slot.
-  message(slot, text) {
+  message(slot, text, reply) {
     const msg = decode(text);
     if (!msg) return slot;
-    if (msg.type === T.HELLO) return slot === null ? this.hello(msg) : slot;
+    if (msg.type === T.HELLO) return slot === null ? this.hello(msg, reply) : slot;
     if (slot === null) return slot;
     const m = this.state.match;
     this.touch();

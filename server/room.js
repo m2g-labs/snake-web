@@ -1,9 +1,15 @@
 import { DurableObject } from 'cloudflare:workers';
 import { encode, decode } from '../src/protocol.js';
+import { normalizeCode } from '../src/roomcode.js';
 import { RoomCore, IDLE_MS } from './roomcore.js';
 
 const MAX_SOCKETS = 4; // 2 players + stale sockets awaiting replacement on reconnect
 const TTL_MS = IDLE_MS; // rooms with no activity expire (alarm deletes them)
+
+export function codeFromPath(pathname) {
+  const m = pathname.match(/^\/rooms\/([^/]+)\/ws$/);
+  return (m && normalizeCode(decodeURIComponent(m[1]))) || '';
+}
 
 export class Room extends DurableObject {
   async fetch(request) {
@@ -29,7 +35,7 @@ export class Room extends DurableObject {
     this.ctx.acceptWebSocket(server);
     server.serializeAttachment({ slot: null });
     await this.ctx.storage.put('created', Date.now());
-    await this.ctx.storage.put('code', url.pathname.split('/').filter(Boolean).pop() || '');
+    await this.ctx.storage.put('code', codeFromPath(url.pathname));
     return new Response(null, { status: 101, webSocket: client });
   }
 
@@ -59,7 +65,7 @@ export class Room extends DurableObject {
     const att = ws.deserializeAttachment() || { slot: null };
     const core = await this.core();
     const before = att.slot;
-    const slot = core.message(before, typeof data === 'string' ? data : null);
+    const slot = core.message(before, typeof data === 'string' ? data : null, (m) => ws.send(encode(m)));
     if (before === null && slot === null) {
       // Hello was rejected (bad token / full) or message was invalid; only reject real hellos.
       const msg = typeof data === 'string' ? decode(data) : null;
