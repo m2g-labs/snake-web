@@ -9,6 +9,7 @@ import { normalizeCode, parseJoinParam, buildShareUrl, errorText } from './lobby
 import { connect, createRoom } from './net.js';
 import { T } from './protocol.js';
 import { draw, resizeCanvas, availableBoardPx } from './render.js';
+import { RELAY_URL as CONFIG_RELAY_URL } from './config.js';
 
 const canvas = document.getElementById('game');
 const ctx = canvas.getContext('2d');
@@ -159,7 +160,7 @@ window.addEventListener('keydown', (e) => {
 actionBtn.addEventListener('click', action);
 
 // ---- Online lobby ----
-const RELAY_URL = window.SNAKE_RELAY_URL || 'https://snake-relay.m2g-labs.workers.dev';
+const RELAY_URL = window.SNAKE_RELAY_URL || CONFIG_RELAY_URL;
 const lobby = document.getElementById('lobby');
 const lobbyChoice = document.getElementById('lobby-choice');
 const lobbyRoom = document.getElementById('lobby-room');
