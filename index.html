@@ -14,6 +14,8 @@
   <main>
     <div id="score">Score: 0</div>
     <div id="best">Best: 0</div>
+    <div id="hud" hidden></div>
+    <div id="banner" role="status" hidden></div>
     <div id="board">
       <canvas id="game"></canvas>
       <div id="overlay">
@@ -36,6 +38,11 @@
         </div>
         <button id="action" type="button">Start</button>
         <button id="online-btn" type="button">Play online</button>
+        <div id="match-actions" hidden>
+          <button id="ready-btn" type="button">Ready</button>
+          <button id="rematch-btn" type="button">Rematch</button>
+          <button id="exit-btn" type="button">Exit</button>
+        </div>
       </div>
       <div id="lobby" hidden>
         <h2>Play online</h2>
