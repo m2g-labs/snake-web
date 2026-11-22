@@ -1,5 +1,5 @@
 // Relay Worker URL. Replace <account> with your Cloudflare workers.dev subdomain.
-export const DEFAULT_RELAY_URL = 'https://snake-relay.<account>.workers.dev';
+export const DEFAULT_RELAY_URL = 'https://snake-relay.manuelgasparm.workers.dev';
 
 // Pure resolver: prefer a valid http(s) `?relay=` override, else the default.
 export function resolveRelayUrl(search = '', fallback = DEFAULT_RELAY_URL) {
