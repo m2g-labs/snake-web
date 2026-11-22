@@ -4,6 +4,7 @@ import { encode, decode, T } from './protocol.js';
 
 export const RETRY_BASE_MS = 500;
 export const RETRY_LIMIT_MS = 15000;
+export const INITIAL_MAX_ATTEMPTS = 3;
 const tokenKey = (code) => `snake-token:${code}`;
 
 const wsBase = (url) => url.replace(/^http/, 'ws').replace(/\/+$/, '');
@@ -32,6 +33,7 @@ export function connect({
   let attempt = 0;
   let dropAt = null;
   let status = null;
+  let everOpened = false;
 
   const emit = (type, data) => (handlers[type] || []).slice().forEach((fn) => fn(data));
   const setStatus = (s) => { if (s === status) return; status = s; emit('status', s); };
@@ -46,7 +48,7 @@ export function connect({
     ws = sock;
     sock.onopen = () => {
       if (sock !== ws) return;
-      attempt = 0; dropAt = null;
+      attempt = 0; dropAt = null; everOpened = true;
       sock.send(encode({ ...helloExtra, type: T.HELLO, token: savedToken ?? null }));
       setStatus('open');
     };
@@ -60,6 +62,7 @@ export function connect({
     sock.onclose = () => {
       if (sock !== ws || closed) return;
       ws = null;
+      if (!everOpened && attempt + 1 >= INITIAL_MAX_ATTEMPTS) { setStatus('failed'); return; }
       if (dropAt === null) dropAt = now();
       const remaining = RETRY_LIMIT_MS - (now() - dropAt);
       if (remaining <= 0) { setStatus('failed'); return; }
