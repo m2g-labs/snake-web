@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { connect, createRoom } from '../src/net.js';
+import { connect, createRoom, INITIAL_MAX_ATTEMPTS, RETRY_LIMIT_MS } from '../src/net.js';
 
 function setup(opts = {}) {
   let t = 0; const timers = [];
@@ -86,4 +86,28 @@ test('createRoom handles success and HTTP errors', async () => {
   assert.equal(init.method, 'POST');
   await assert.rejects(createRoom({ relayUrl: 'https://r', fetchImpl: async () => ({ ok: false, status: 500 }) }), /500/);
   await assert.rejects(createRoom({ relayUrl: 'https://r', fetchImpl: async () => { throw new Error('net'); } }), /net/);
+});
+
+test('fails fast after INITIAL_MAX_ATTEMPTS when never opened', () => {
+  assert.equal(INITIAL_MAX_ATTEMPTS, 3);
+  const { socks, statuses, advance } = setup();
+  socks[0].drop();
+  advance(500);
+  assert.equal(socks.length, 2);
+  socks[1].drop();
+  advance(1000);
+  assert.equal(socks.length, 3);
+  socks[2].drop();
+  assert.equal(statuses.at(-1), 'failed');
+  advance(60000);
+  assert.equal(socks.length, 3);
+});
+
+test('after a successful open, drops keep retrying beyond 3 attempts up to 15s', () => {
+  const { socks, statuses, advance } = setup();
+  socks[0].open();
+  socks[0].drop();
+  for (let i = 0; i < 5; i++) { advance(RETRY_LIMIT_MS / 10); const s = socks.at(-1); if (s.readyState === 0) s.drop(); }
+  assert.ok(socks.length > INITIAL_MAX_ATTEMPTS);
+  assert.notEqual(statuses.at(-1), 'failed');
 });
