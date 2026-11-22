@@ -1,4 +1,5 @@
 // High score persistence; safe when localStorage is unavailable or throws.
+import { BOARD_SIZE_DEFAULT, clampBoardSize } from './board.js';
 import { DIFFICULTY_MIN, DIFFICULTY_MAX, DIFFICULTY_DEFAULT, clampDifficulty } from './difficulty.js';
 export const KEY = 'snake-high-score';
 
@@ -40,6 +41,27 @@ export function saveDifficulty(level, store) {
   try {
     store = store ?? globalThis.localStorage;
     store.setItem(DIFFICULTY_KEY, String(clampDifficulty(level)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export const BOARD_SIZE_KEY = 'snake-board-size';
+
+export function loadBoardSize(store) {
+  try {
+    store = store ?? globalThis.localStorage;
+    return clampBoardSize(store.getItem(BOARD_SIZE_KEY));
+  } catch {
+    return BOARD_SIZE_DEFAULT;
+  }
+}
+
+export function saveBoardSize(size, store) {
+  try {
+    store = store ?? globalThis.localStorage;
+    store.setItem(BOARD_SIZE_KEY, String(clampBoardSize(size)));
     return true;
   } catch {
     return false;

@@ -14,8 +14,11 @@ function lerp(level, a, b) {
   return Math.round(a + (b - a) * t);
 }
 
-// Square board size: 24 (level 1) down to 16 (level 10).
-export function boardSize(level) { return lerp(level, 24, 16); }
+// Base tick: 180ms (level 1) down to 80ms (level 10).
+export function baseTickMs(level) { return lerp(level, 180, 80); }
 
-// Base tick: 160ms (level 1) down to 90ms (level 10).
-export function baseTickMs(level) { return lerp(level, 160, 90); }
+// Ms removed from the tick per food eaten: 1 (level 1) up to 5 (level 10).
+export function speedStepMs(level) { return lerp(level, 1, 5); }
+
+// Absolute floor for the tick interval.
+export const MIN_TICK_MS = 50;

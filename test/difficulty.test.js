@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { clampDifficulty, boardSize, baseTickMs, DIFFICULTY_DEFAULT } from '../src/difficulty.js';
+import { clampDifficulty, baseTickMs, speedStepMs, MIN_TICK_MS as DIFF_MIN_TICK, DIFFICULTY_DEFAULT } from '../src/difficulty.js';
 import { loadDifficulty, saveDifficulty, DIFFICULTY_KEY } from '../src/storage.js';
 import { tickMs, BASE_TICK_MS, MIN_TICK_MS } from '../src/game.js';
 
@@ -14,13 +14,12 @@ test('clamp', () => {
   assert.equal(clampDifficulty(3), 3);
 });
 test('mappings monotonic with endpoints', () => {
-  assert.equal(boardSize(1), 24); assert.equal(boardSize(10), 16);
-  assert.equal(baseTickMs(1), 160); assert.equal(baseTickMs(10), 90);
+  assert.equal(baseTickMs(1), 180); assert.equal(baseTickMs(10), 80);
+  assert.equal(speedStepMs(1), 1); assert.equal(speedStepMs(10), 5);
   for (let l = 2; l <= 10; l++) {
-    assert.ok(boardSize(l) <= boardSize(l - 1));
     assert.ok(baseTickMs(l) < baseTickMs(l - 1));
+    assert.ok(speedStepMs(l) >= speedStepMs(l - 1));
   }
-  assert.equal(boardSize(5), 20); assert.equal(baseTickMs(5), 129);
 });
 test('storage', () => {
   assert.equal(loadDifficulty(mem()), 5);
@@ -35,4 +34,12 @@ test('tickMs base', () => {
   assert.equal(tickMs(1e6, 160), 104);
   assert.equal(tickMs(10, 160), 150);
   assert.equal(tickMs(0, 90), 90);
+});
+test('tickMs with step and floor', () => {
+  assert.equal(DIFF_MIN_TICK, 50);
+  assert.equal(tickMs(0, 180, 3, DIFF_MIN_TICK), 180);
+  assert.equal(tickMs(10, 180, 3, DIFF_MIN_TICK), 150);
+  assert.equal(tickMs(1e6, 180, 3, DIFF_MIN_TICK), 50);
+  assert.equal(tickMs(-5, 100, 2, 50), 100);
+  assert.equal(tickMs(NaN, 100, 2, 50), 100);
 });

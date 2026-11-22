@@ -2,6 +2,13 @@
 
 export const FOOD_ICONS = ['🍎','🍒','🍇','🍓','🍊'];
 
+export function availableBoardPx(innerW, innerH, dpadH, maxPx = 560) {
+  return {
+    w: Math.max(0, Math.min(innerW - 16, maxPx)),
+    h: Math.max(0, Math.min(innerH - 70 - dpadH, maxPx)),
+  };
+}
+
 export function fitCellSize(availW, availH, cols, rows) {
   return Math.max(1, Math.floor(Math.min(availW / cols, availH / rows)));
 }
