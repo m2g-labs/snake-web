@@ -22,4 +22,8 @@ canvas { touch-action: none; }
 #difficulty[hidden] { display: none; }
 #difficulty label { display: block; font-size: 14px; }
 #difficulty input[type=range] { width: 100%; min-height: 44px; margin: 0; accent-color: #4caf50; touch-action: pan-y; }
+#board-size { margin: 0 0 12px; width: min(280px, 80%); }
+#board-size[hidden] { display: none; }
+#board-size label { display: block; font-size: 14px; }
+#board-size select { width: 100%; min-height: 44px; font-size: 16px; }
 #difficulty-label { font-size: 13px; opacity: .85; }
