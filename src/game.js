@@ -82,8 +82,9 @@ export const MIN_TICK_RATIO = 0.65;
 export const MIN_TICK_MS = Math.round(BASE_TICK_MS * MIN_TICK_RATIO);
 export const TICK_STEP_MS = 1;
 
-// Tick interval shrinks by TICK_STEP_MS per point, floored at 65% of the base tick.
-export function tickMs(score, baseMs = BASE_TICK_MS) {
+// Tick interval shrinks by stepMs per point, floored at minMs (default: 65% of the base tick).
+export function tickMs(score, baseMs = BASE_TICK_MS, stepMs = TICK_STEP_MS, minMs) {
   const s = Number.isFinite(score) && score > 0 ? score : 0;
-  return Math.max(Math.round(baseMs * MIN_TICK_RATIO), baseMs - s * TICK_STEP_MS);
+  const floor = minMs ?? Math.round(baseMs * MIN_TICK_RATIO);
+  return Math.max(floor, baseMs - s * stepMs);
 }
