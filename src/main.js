@@ -222,7 +222,7 @@ function enterRoom(code, creator) {
   conn = connect({ relayUrl: RELAY_URL, code, helloExtra: creator ? { level: clampDifficulty(Number(diffSlider.value)) } : {} });
   setupOnline();
   conn.on(T.ERROR, (m) => { if (online && online.round) { exitOnline(); return; } lobbyReset(); lobbyError.textContent = errorText(m.reason); });
-  conn.on('status', (st) => { if (st === 'failed') { if (online && online.round) { exitOnline(); return; } lobbyReset(); lobbyError.textContent = errorText(''); } });
+  conn.on('status', (st) => { if (st === 'failed') { console.warn('relay connection failed', RELAY_URL, code); if (online && online.round) { exitOnline(); return; } lobbyReset(); lobbyError.textContent = errorText('connect_failed'); } });
   conn.on(T.OPPONENT_JOINED, () => { lobbyWait.textContent = 'Opponent joined!'; });
 }
 // ---- Online match ----
@@ -364,8 +364,9 @@ async function onCreate() {
     const code = normalizeCode(res && res.code);
     if (!code) throw new Error('bad code');
     enterRoom(code, true);
-  } catch {
-    lobbyError.textContent = errorText('');
+  } catch (err) {
+    console.warn('createRoom failed', RELAY_URL, err);
+    lobbyError.textContent = errorText('create_failed');
   }
 }
 function onJoin() {

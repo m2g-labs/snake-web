@@ -24,6 +24,8 @@ export function buildShareUrl(code, pageUrl) {
 const MESSAGES = {
   'room not found': 'Room not found. Check the code and try again.',
   'room full': 'That room is full.',
+  'create failed': "Couldn't create a room – the relay is unreachable. Try again later.",
+  'connect failed': "Couldn't connect to room. Check the code or try again later.",
 };
 export function errorText(reason) {
   const key = String(reason || '').toLowerCase().replace(/[_-]/g, ' ');

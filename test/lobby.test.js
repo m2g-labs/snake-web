@@ -22,4 +22,7 @@ test('errorText', () => {
   assert.match(errorText('room_full'), /full/);
   assert.match(errorText('room not found'), /not found/);
   assert.match(errorText(''), /unreachable/);
+  assert.match(errorText('create_failed'), /create/);
+  assert.match(errorText('connect_failed'), /connect/);
+  assert.notEqual(errorText('create_failed'), errorText('connect_failed'));
 });
