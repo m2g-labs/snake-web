@@ -46,3 +46,14 @@ test('snapshot independent after step', () => {
   assert.deepEqual(snap, copy);
   assert.notEqual(snap[0], g.snake[0]);
 });
+test('frameAlpha', async () => {
+  const { frameAlpha } = await import('../src/interp.js');
+  const b = { mode: 'running', gameOver: false, acc: 50, tick: 200, reducedMotion: false };
+  assert.equal(frameAlpha(b), 0.25);
+  assert.equal(frameAlpha({ ...b, mode: 'paused' }), 1);
+  assert.equal(frameAlpha({ ...b, mode: 'countdown' }), 1);
+  assert.equal(frameAlpha({ ...b, gameOver: true }), 1);
+  assert.equal(frameAlpha({ ...b, reducedMotion: true }), 1);
+  assert.equal(frameAlpha({ ...b, acc: 500 }), 1);
+  assert.equal(frameAlpha({ ...b, acc: -5 }), 0);
+});

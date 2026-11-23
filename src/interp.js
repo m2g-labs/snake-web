@@ -18,3 +18,10 @@ export function interpolateSnake(prev, curr, alpha, cols, rows) {
 export function snapshotSnake(snake) {
   return snake.map((s) => ({ x: s.x, y: s.y }));
 }
+
+// Fraction of the current tick elapsed, clamped to [0,1]; 1 means "settled".
+export function frameAlpha({ mode, gameOver, acc, tick, reducedMotion }) {
+  if (reducedMotion || gameOver || mode !== 'running') return 1;
+  if (!(tick > 0) || !Number.isFinite(acc)) return 1;
+  return Math.min(1, Math.max(0, acc / tick));
+}
