@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { availableBoardPx, fitCellSize, resizeCanvas, headDirection, segmentRadius, draw, FOOD_ICONS } from '../src/render.js';
+import { availableBoardPx, fitCellSize, resizeCanvas, headDirection, segmentRadius, segmentsAdjacent, draw, FOOD_ICONS } from '../src/render.js';
 import { createGame } from '../src/game.js';
 
 test('headDirection', () => {
@@ -83,4 +83,42 @@ test('availableBoardPx', () => {
   assert.deepEqual(availableBoardPx(375, 667, 150), { w: 359, h: 447 });
   assert.deepEqual(availableBoardPx(10, 50, 100), { w: 0, h: 0 });
   assert.deepEqual(availableBoardPx(1000, 1000, 0, 300), { w: 300, h: 300 });
+});
+
+test('segmentsAdjacent', () => {
+  assert.equal(segmentsAdjacent({ x: 1, y: 1 }, { x: 2, y: 1 }), true);
+  assert.equal(segmentsAdjacent({ x: 1, y: 1 }, { x: 3, y: 1 }), false);
+  assert.equal(segmentsAdjacent({ x: 1.5, y: 1.25 }, { x: 2.4, y: 2.2 }), true);
+  assert.equal(segmentsAdjacent({ x: 1, y: 1 }, { x: 2 + 1e-7, y: 1 }), true);
+  assert.equal(segmentsAdjacent({ x: 1, y: 1 }, { x: 2.01, y: 1 }), false);
+  // wrap
+  assert.equal(segmentsAdjacent({ x: 0, y: 1 }, { x: 9, y: 1 }), false);
+});
+
+function fakeCtx() {
+  const arcs = [];
+  const ctx = new Proxy({}, {
+    get: (t, k) => (k === 'arc' ? (...a) => arcs.push(a) : k in t ? t[k] : () => {}),
+    set: (t, k, v) => { t[k] = v; return true; },
+  });
+  return { ctx, arcs };
+}
+
+test('draw uses opts.snake fractional positions, head direction from state.snake', () => {
+  const state = { cols: 10, rows: 10, food: null, snake: [{ x: 3, y: 2 }, { x: 2, y: 2 }] };
+  const cell = 20;
+  const a = fakeCtx();
+  draw(a.ctx, state, cell, 1);
+  assert.deepEqual(a.arcs.slice(-0).length >= 2, true);
+  const centres = a.arcs.map((x) => [x[0], x[1]]);
+  assert.deepEqual(centres[0], [2 * 20 + 10, 2 * 20 + 10]); // tail first
+  const b = fakeCtx();
+  const snake = [{ x: 3.25, y: 2 }, { x: 2.25, y: 2 }];
+  draw(b.ctx, state, cell, 1, { snake });
+  const c = b.arcs.map((x) => [x[0], x[1]]);
+  assert.deepEqual(c[0], [2.25 * 20 + 10, 50]);
+  assert.deepEqual(c[1], [3.25 * 20 + 10, 50]);
+  // eyes still face right (from integer state), so eye x is ahead of head centre
+  const eyes = b.arcs.slice(3);
+  assert.ok(eyes.every((e) => e[0] > 3.25 * 20 + 10));
 });
