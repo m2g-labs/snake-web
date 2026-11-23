@@ -8,6 +8,7 @@ import { vibrate, HAPTIC_EAT, HAPTIC_OVER } from './haptics.js';
 import { normalizeCode, parseJoinParam, buildShareUrl, errorText } from './lobby.js';
 import { connect, createRoom } from './net.js';
 import { T } from './protocol.js';
+import { interpolateSnake, snapshotSnake, frameAlpha } from './interp.js';
 import { draw, resizeCanvas, availableBoardPx } from './render.js';
 import { hudText, roundResult, matchResult, disconnectText, countdownSeconds, RECONNECTING_TEXT, GRACE_SECONDS } from './matchview.js';
 import { seededRng } from './rng.js';
@@ -51,6 +52,10 @@ let dpr = 1;
 let best = loadHighScore();
 let acc = 0;
 let last = 0;
+let prevSnake = snapshotSnake(state.snake);
+const motionQuery = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+let reducedMotion = !!(motionQuery && motionQuery.matches);
+if (motionQuery && motionQuery.addEventListener) motionQuery.addEventListener('change', (e) => { reducedMotion = e.matches; });
 
 function resize() {
   dpr = window.devicePixelRatio || 1;
@@ -60,7 +65,8 @@ function resize() {
 }
 
 function render() {
-  draw(ctx, state, cell, dpr);
+  const alpha = frameAlpha({ mode, gameOver: state.gameOver, acc, tick: tickMs(state.score, baseMs, stepMs, MIN_TICK_MS), reducedMotion });
+  draw(ctx, state, cell, dpr, { snake: interpolateSnake(prevSnake, state.snake, alpha, state.cols, state.rows) });
   scoreEl.textContent = `Score: ${state.score}`;
   if (online) hud.textContent = hudText(state.score, online.oppScore, online.wins.me, online.wins.opp);
   bestEl.textContent = `Best: ${best}`;
@@ -100,6 +106,7 @@ function restart() {
   baseMs = baseTickMs(level);
   stepMs = speedStepMs(level);
   state = createGame({ cols: size, rows: size });
+  prevSnake = snapshotSnake(state.snake);
   acc = 0;
   resize();
   setMode('running');
@@ -120,6 +127,7 @@ function frame(t) {
     while (acc >= tickMs(state.score, baseMs, stepMs, MIN_TICK_MS)) {
       acc -= tickMs(state.score, baseMs, stepMs, MIN_TICK_MS);
       const before = state.score;
+      prevSnake = snapshotSnake(state.snake);
       step(state);
       if (state.score > before) vibrate(HAPTIC_EAT);
       if (online && state.score > before) conn.send({ type: T.SCORE, score: state.score });
@@ -286,6 +294,7 @@ function onRoundStart(m) {
   stepMs = speedStepMs(level);
   size = BOARD_SIZE_DEFAULT;
   state = createGame({ cols: size, rows: size, rng: seededRng(m.seed) });
+  prevSnake = snapshotSnake(state.snake);
   acc = 0;
   mode = 'countdown';
   overlay.hidden = true;
