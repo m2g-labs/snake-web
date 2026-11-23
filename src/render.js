@@ -25,7 +25,8 @@ export function resizeCanvas(canvas, availW, availH, cols, rows, dpr = 1) {
   return cell;
 }
 
-export function draw(ctx, state, cell, dpr = 1) {
+export function draw(ctx, state, cell, dpr = 1, opts = {}) {
+  const snake = (opts && opts.snake) || state.snake;
   const w = state.cols * cell;
   const h = state.rows * cell;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -49,12 +50,12 @@ export function draw(ctx, state, cell, dpr = 1) {
     ctx.fillRect(state.food.x * cell + 1, state.food.y * cell + 1, cell - 2, cell - 2);
   }
   if (cell < 6) {
-    state.snake.forEach((s, i) => {
+    snake.forEach((s, i) => {
       ctx.fillStyle = i === 0 ? '#7f7' : '#0c0';
       ctx.fillRect(s.x * cell + 1, s.y * cell + 1, cell - 2, cell - 2);
     });
   } else {
-    drawSnake(ctx, state.snake, cell);
+    drawSnake(ctx, snake, cell, headDirection(state.snake));
   }
 }
 
@@ -81,7 +82,13 @@ export function segmentRadius(i, length, cell) {
 
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 
-function drawSnake(ctx, snake, cell) {
+// Whether two segments are close enough to join (not across a wrap). Float-tolerant.
+export function segmentsAdjacent(a, b) {
+  const lim = 1 + 1e-6;
+  return Math.abs(a.x - b.x) <= lim && Math.abs(a.y - b.y) <= lim;
+}
+
+function drawSnake(ctx, snake, cell, dir) {
   const n = snake.length;
   const c = (s) => [s.x * cell + cell / 2, s.y * cell + cell / 2];
   ctx.lineCap = 'round';
@@ -92,7 +99,7 @@ function drawSnake(ctx, snake, cell) {
     const r = segmentRadius(i, n, cell);
     ctx.fillStyle = i % 2 ? '#0a0' : '#0c0';
     ctx.strokeStyle = ctx.fillStyle;
-    if (i < n - 1 && Math.abs(snake[i].x - snake[i + 1].x) <= 1 && Math.abs(snake[i].y - snake[i + 1].y) <= 1) {
+    if (i < n - 1 && segmentsAdjacent(snake[i], snake[i + 1])) {
       const [px, py] = c(snake[i + 1]);
       ctx.lineWidth = 2 * Math.min(r, segmentRadius(i + 1, n, cell));
       ctx.beginPath();
@@ -106,7 +113,7 @@ function drawSnake(ctx, snake, cell) {
   }
   // Head
   const [hx, hy] = c(snake[0]);
-  const [dx, dy] = DIRS[headDirection(snake)];
+  const [dx, dy] = DIRS[dir];
   const hr = Math.min(cell / 2, segmentRadius(0, n, cell) * 1.1);
   if (cell >= 10) {
     ctx.strokeStyle = '#f33';
